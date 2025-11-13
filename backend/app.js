@@ -8,6 +8,18 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 app.use("/api/ingest", ingestRouter);
+import { z } from "zod";
+
+// Zod schema for a transaction payload
+// AI-GENERATED (GPT-5 Thinking), 2025-11-07
+// Prompt: "Create a Zod schema for a transaction with date, amount, category,
+// and optional source (manual|receipt|card). Coerce amount to number."
+const TxSchema = z.object({
+  date: z.string().min(1, "date is required"),
+  amount: z.coerce.number().finite("amount must be a number"),
+  category: z.string().min(1, "category is required"),
+  source: z.enum(["manual", "receipt", "card"]).optional().default("manual"),
+});
 
 /**
  * SpendSmart backend — Express + in-memory storage
@@ -26,21 +38,28 @@ app.use("/api/ingest", ingestRouter);
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 app.post("/api/transactions", (req, res) => {
-  const { date, amount, category } = req.body || {};
-  if (!date || typeof amount !== "number" || !category) {
-    return res
-      .status(400)
-      .json({ error: "date, amount(number), category required" });
+  // Use Zod to validate and coerce the incoming body
+  const parsed = TxSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid transaction payload",
+      details: parsed.error.flatten(), // { fieldErrors, formErrors }
+    });
   }
+
+  const { date, amount, category, source } = parsed.data;
+
   const record = {
     id: Date.now().toString(),
     date,
     amount,
     category,
-    source: "manual",
+    source, // will default to "manual" if not provided
   };
+
   req.app.locals.tx.push(record);
-  res.status(201).json(record);
+  return res.status(201).json(record);
 });
 
 app.get("/api/transactions", (req, res) => {
