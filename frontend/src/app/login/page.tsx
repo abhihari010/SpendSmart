@@ -1,14 +1,18 @@
 "use client"
 
+import React, { useState } from "react"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Wallet } from "lucide-react"
-import Link from "next/link"
-import { useState } from "react"
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login")
+
+  // Component variable to work around React 19 type compatibility
+  const WalletIcon = Wallet as React.ComponentType<{ className?: string }>
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -16,7 +20,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-2">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
-            <Wallet className="h-8 w-8 text-white" />
+            <WalletIcon className="h-8 w-8 text-white" />
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold text-foreground">SpendSmart</div>

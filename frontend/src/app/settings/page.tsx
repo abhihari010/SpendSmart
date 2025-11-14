@@ -1,5 +1,7 @@
 "use client"
 
+import React from "react"
+
 import { AppSidebar } from "@/components/app-sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +17,13 @@ import { useTheme } from "@/components/theme-provider"
 export default function SettingsPage() {
   const { isCollapsed } = useSidebar()
   const { theme, toggleTheme } = useTheme()
+
+  // Component variables to work around React 19 type compatibility
+  const CreditCardIcon = CreditCard as React.ComponentType<{ className?: string }>
+  const LockIcon = Lock as React.ComponentType<{ className?: string }>
+  const BellIcon = Bell as React.ComponentType<{ className?: string }>
+  const MoonIcon = Moon as React.ComponentType<{ className?: string }>
+  const Trash2Icon = Trash2 as React.ComponentType<{ className?: string }>
 
   return (
     <div className={theme}>
@@ -94,7 +103,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between rounded-lg border border-border p-4">
                     <div className="flex items-center gap-3">
                       <div className="rounded-lg bg-muted p-2">
-                        <Lock className="h-5 w-5 text-muted-foreground" />
+                        <LockIcon className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div>
                         <div className="font-medium text-card-foreground">Password</div>
@@ -109,7 +118,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between rounded-lg border border-border p-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <Bell className="h-5 w-5 text-muted-foreground" />
+                        <BellIcon className="h-5 w-5 text-muted-foreground" />
                         <div>
                           <div className="font-medium text-card-foreground">Two-Factor Authentication</div>
                           <div className="text-sm text-muted-foreground">Add an extra layer of security</div>
@@ -138,7 +147,7 @@ export default function SettingsPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="rounded-lg bg-primary/10 p-2">
-                          <CreditCard className="h-5 w-5 text-primary" />
+                          <CreditCardIcon className="h-5 w-5 text-primary" />
                         </div>
                         <div>
                           <div className="font-medium text-card-foreground">{account.name}</div>
@@ -146,7 +155,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2Icon className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
@@ -165,33 +174,35 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                   {[
                     {
-                      icon: Bell,
+                      icon: BellIcon,
                       title: "Email Notifications",
                       description: "Receive updates via email",
                       enabled: true,
                     },
                     {
-                      icon: Bell,
+                      icon: BellIcon,
                       title: "Push Notifications",
                       description: "Receive push notifications",
                       enabled: false,
                     },
                     {
-                      icon: Bell,
+                      icon: BellIcon,
                       title: "Budget Alerts",
                       description: "Notify when approaching budget limits",
                       enabled: true,
                     },
                     {
-                      icon: Bell,
+                      icon: BellIcon,
                       title: "Goal Reminders",
                       description: "Weekly progress updates on goals",
                       enabled: true,
                     },
-                  ].map((item, i) => (
+                  ].map((item, i) => {
+                    const IconComponent = item.icon as React.ComponentType<{ className?: string }>
+                    return (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <item.icon className="h-5 w-5 text-muted-foreground" />
+                        <IconComponent className="h-5 w-5 text-muted-foreground" />
                         <div>
                           <div className="font-medium text-card-foreground">{item.title}</div>
                           <div className="text-sm text-muted-foreground">{item.description}</div>
@@ -199,7 +210,8 @@ export default function SettingsPage() {
                       </div>
                       <Switch defaultChecked={item.enabled} />
                     </div>
-                  ))}
+                    )
+                  })}
                 </CardContent>
               </Card>
 
@@ -212,7 +224,7 @@ export default function SettingsPage() {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Moon className="h-5 w-5 text-muted-foreground" />
+                      <MoonIcon className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <div className="font-medium text-card-foreground">Dark Mode</div>
                         <div className="text-sm text-muted-foreground">

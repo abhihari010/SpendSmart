@@ -1,16 +1,21 @@
 "use client"
 
+import React, { useMemo } from "react"
+
 import { AppSidebar } from "@/components/app-sidebar"
 import { useSidebar } from "@/components/sidebar-provider"
 import { useTransactions } from "@/components/transaction-provider"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
-import { useMemo } from "react"
 
 export default function InsightsPage() {
   const { isCollapsed } = useSidebar()
   const { transactions } = useTransactions()
+
+  // Component variables to work around React 19 type compatibility
+  const AlertCircleIcon = AlertCircle as React.ComponentType<{ className?: string }>
+  const CheckCircle2Icon = CheckCircle2 as React.ComponentType<{ className?: string }>
 
   const monthlySpending = useMemo(() => {
     const months: { [key: string]: number } = {}
@@ -113,7 +118,7 @@ export default function InsightsPage() {
           <div className="mb-8 space-y-4">
             {budgetStatus <= 100 && (
               <div className="flex items-start gap-3 rounded-lg border border-green-500/50 bg-green-500/10 p-4">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-green-400" />
+                <CheckCircle2Icon className="h-5 w-5 shrink-0 text-green-400" />
                 <div className="flex-1">
                   <div className="font-medium text-green-400">Great job!</div>
                   <div className="text-sm text-green-400/80">
@@ -124,7 +129,7 @@ export default function InsightsPage() {
             )}
             {budgetStatus > 100 && (
               <div className="flex items-start gap-3 rounded-lg border border-red-500/50 bg-red-500/10 p-4">
-                <AlertCircle className="h-5 w-5 shrink-0 text-red-400" />
+                <AlertCircleIcon className="h-5 w-5 shrink-0 text-red-400" />
                 <div className="flex-1">
                   <div className="font-medium text-red-400">Watch out!</div>
                   <div className="text-sm text-red-400/80">
