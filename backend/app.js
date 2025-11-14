@@ -10,6 +10,10 @@ app.use(morgan("dev"));
 app.use("/api/ingest", ingestRouter);
 import { z } from "zod";
 
+// Initialize in-memory storage
+app.locals.tx = [];
+app.locals.goals = [];
+
 // Zod schema for a transaction payload
 // AI-GENERATED (GPT-5 Thinking), 2025-11-07
 // Prompt: "Create a Zod schema for a transaction with date, amount, category,
@@ -19,6 +23,15 @@ const TxSchema = z.object({
   amount: z.coerce.number().finite("amount must be a number"),
   category: z.string().min(1, "category is required"),
   source: z.enum(["manual", "receipt", "card"]).optional().default("manual"),
+});
+
+// Zod schema for a budgeting goal
+const GoalSchema = z.object({
+  category: z.string().min(1, "category is required"),
+  targetAmount: z.coerce.number().positive("target amount must be positive"),
+  startDate: z.string().min(1, "start date is required"),
+  endDate: z.string().min(1, "end date is required"),
+  period: z.enum(["weekly", "monthly", "custom"]).optional().default("monthly"),
 });
 
 /**
@@ -73,6 +86,115 @@ app.get("/api/transactions", (req, res) => {
   });
   res.json(rows);
 });
+
+// beginning of @alexanderpeal's section
+
+/**
+ * SpendSmart backend — Routes for spending goals
+ * @alexanderpeal
+ *
+ * AI-GENERATED (Sonnet 4.5), 2025-11-13
+ * 
+ * Prompt 1:
+ * 
+ * Analyze this repo, it's supposed to be a barebones repo for a simple budgeting app.
+ * Tell me the existing functionality, and help me implement a simple feature for
+ * tracking budgeting goals. 
+ * 
+ * (... output suggests creating CRUD endpoints for goals ... )
+ * 
+ * Prompt 2:
+ * 
+ * Show me how to create endpoints based on what you suggested.
+ * Maybe have it pull from req.apps.locals.tx.push. Doesn't need to
+ * be working code - prioritize simplicity.
+ * 
+ * Follow these guidelines:
+ * Create goal: Should be a POST, similar to parsed data in api/transactions
+ * Get goals: Return all active goals
+ * Update goal: given a goal id, update the goal.
+ */
+app.post("/api/goals", (req, res) => {
+  const parsed = GoalSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid goal payload",
+      details: parsed.error.flatten(),
+    });
+  }
+
+  const { category, targetAmount, startDate, endDate, period } = parsed.data;
+
+  const goal = {
+    id: Date.now().toString(),
+    category,
+    targetAmount,
+    startDate,
+    endDate,
+    period,
+    createdAt: new Date().toISOString(),
+  };
+
+  // Initialize goals array if it doesn't exist
+  if (!req.app.locals.goals) {
+    req.app.locals.goals = [];
+  }
+
+  req.app.locals.goals.push(goal);
+  return res.status(201).json(goal);
+});
+
+// GET /api/goals - Get all active goals (goals that overlap with current date)
+app.get("/api/goals", (req, res) => {
+  const now = new Date();
+  const allGoals = req.app.locals.goals || [];
+
+  // Filter to only active goals (current date is between start and end)
+  const activeGoals = allGoals.filter((goal) => {
+    const start = new Date(goal.startDate);
+    const end = new Date(goal.endDate);
+    return now >= start && now <= end;
+  });
+
+  res.json(activeGoals);
+});
+
+// PUT /api/goals/:id - Update an existing goal
+app.put("/api/goals/:id", (req, res) => {
+  const goalId = req.params.id;
+  const goals = req.app.locals.goals || [];
+
+  // Find the goal by ID
+  const goalIndex = goals.findIndex((g) => g.id === goalId);
+
+  if (goalIndex === -1) {
+    return res.status(404).json({ error: "Goal not found" });
+  }
+
+  // Partial validation - only validate fields that are provided
+  const updateSchema = GoalSchema.partial();
+  const parsed = updateSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid update payload",
+      details: parsed.error.flatten(),
+    });
+  }
+
+  // Update the goal with new data
+  const updatedGoal = {
+    ...goals[goalIndex],
+    ...parsed.data,
+    updatedAt: new Date().toISOString(),
+  };
+
+  goals[goalIndex] = updatedGoal;
+  return res.json(updatedGoal);
+});
+
+// End of @alexanderpeal's section
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () =>
