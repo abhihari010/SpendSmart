@@ -1,6 +1,21 @@
 "use client"
 
-import type React from "react"
+// AI-GENERATED (Cursor AI Assistant), 2025-01-XX
+// Prompt: "Update the goals page to use the backend API instead of local state. It should
+// fetch goals on mount, create goals via API, handle schema conversion between frontend
+// format (name, target, deadline) and backend format (category, targetAmount, startDate, endDate),
+// and calculate goal progress from transactions."
+//
+// Modifications by Abhishek:
+// - Replaced local state with backend API integration
+// - Added schema conversion (name→category, target→targetAmount, deadline→startDate/endDate)
+// - Added deadline parsing function to convert "Dec 2026" format to ISO dates
+// - Added goal progress calculation from transactions in the goal's category
+// - Fixed React 19 type compatibility issues with lucide-react icons
+// - Fixed TypeScript form reset errors by storing form reference
+
+import React, { useState, useEffect } from "react"
+import type { LucideIcon } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { Button } from "@/components/ui/button"
@@ -19,64 +34,179 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
+import { fetchGoals, createGoal, type ApiGoal } from "@/lib/api"
+import { useTransactions } from "@/components/transaction-provider"
+
+// Frontend goal interface (includes UI-specific fields)
+interface FrontendGoal {
+  id: string
+  name: string
+  target: number
+  current: number // Calculated from transactions
+  deadline: string
+  icon: LucideIcon
+  color: string
+  bgColor: string
+  message: string
+  category: string
+}
 
 export default function GoalsPage() {
   const { isCollapsed } = useSidebar()
+  const { transactions } = useTransactions()
   const [open, setOpen] = useState(false)
   const [addFundsOpen, setAddFundsOpen] = useState(false)
-  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null)
-  const [goals, setGoals] = useState<
-    Array<{
-      id: number
-      name: string
-      target: number
-      current: number
-      deadline: string
-      icon: any
-      color: string
-      bgColor: string
-      message: string
-    }>
-  >([])
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null)
+  const [goals, setGoals] = useState<FrontendGoal[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Component variables to work around React 19 type compatibility
+  const TargetIcon = Target as React.ComponentType<{ className?: string }>
+  const PlusIcon = Plus as React.ComponentType<{ className?: string }>
+
+  // Convert API goal to frontend goal format
+  const apiToFrontend = (apiGoal: ApiGoal, transactions: any[]): FrontendGoal => {
+    // Calculate current amount from transactions in this category
+    // Note: This is a simplified calculation - you might want to filter by date range too
+    const current = Math.abs(
+      transactions
+        .filter((t) => t.category === apiGoal.category && t.amount < 0)
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
+    )
+
+    const progress = apiGoal.targetAmount > 0 ? Math.round((current / apiGoal.targetAmount) * 100) : 0
+    let message = "🎯 Great start! Keep it up!"
+    if (progress >= 100) message = "🎉 Goal achieved! Amazing work!"
+    else if (progress >= 75) message = "🔥 Almost there! You're doing great!"
+    else if (progress >= 50) message = "💪 Halfway there! Keep going!"
+    else if (progress >= 25) message = "📈 Making progress! Stay motivated!"
+
+    return {
+      id: apiGoal.id,
+      name: apiGoal.category, // Use category as name
+      target: apiGoal.targetAmount,
+      current,
+      deadline: new Date(apiGoal.endDate).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+      icon: Target,
+      color: "text-green-400",
+      bgColor: "bg-green-400/10",
+      message,
+      category: apiGoal.category,
+    }
+  }
+
+  // Load goals from backend
+  useEffect(() => {
+    const loadGoals = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const apiGoals = await fetchGoals()
+        const frontendGoals = apiGoals.map((goal) => apiToFrontend(goal, transactions))
+        setGoals(frontendGoals)
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to load goals"
+        setError(errorMessage)
+        console.error("Error loading goals:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadGoals()
+  }, [transactions])
+
+  // Parse deadline string to endDate (e.g., "Dec 2026" -> "2026-12-31")
+  const parseDeadline = (deadline: string): string => {
+    // Try to parse formats like "Dec 2026", "December 2026", "2026-12"
+    const parts = deadline.trim().split(/\s+/)
+    if (parts.length >= 2) {
+      const monthNames = [
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+      ]
+      const monthShort = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+      const monthStr = parts[0].toLowerCase()
+      const yearStr = parts[1]
+
+      let month = monthShort.indexOf(monthStr)
+      if (month === -1) {
+        month = monthNames.indexOf(monthStr)
+      }
+
+      if (month !== -1 && yearStr) {
+        const year = parseInt(yearStr, 10)
+        if (!isNaN(year)) {
+          // Set to last day of the month
+          const date = new Date(year, month + 1, 0)
+          return date.toISOString().split("T")[0]
+        }
+      }
+    }
+    // Fallback: if parsing fails, use the string as-is (assuming it's already a date)
+    return deadline
+  }
 
   const totalTarget = goals.reduce((sum, goal) => sum + goal.target, 0)
   const totalSaved = goals.reduce((sum, goal) => sum + goal.current, 0)
   const percentageComplete = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0
 
-  const handleAddGoal = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddGoal = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const newGoal = {
-      id: goals.length + 1,
-      name: formData.get("name") as string,
-      target: Number.parseFloat(formData.get("target") as string),
-      current: 0,
-      deadline: formData.get("deadline") as string,
-      icon: Target,
-      color: "text-green-400",
-      bgColor: "bg-green-400/10",
-      message: "🎯 Great start! Keep it up!",
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    const name = formData.get("name") as string
+    const target = Number.parseFloat(formData.get("target") as string)
+    const deadline = formData.get("deadline") as string
+
+    try {
+      setError(null)
+      const endDate = parseDeadline(deadline)
+      const startDate = new Date().toISOString().split("T")[0] // Start from today
+
+      const apiGoal: Omit<ApiGoal, "id" | "createdAt" | "updatedAt"> = {
+        category: name,
+        targetAmount: target,
+        startDate,
+        endDate,
+        period: "monthly",
+      }
+
+      const created = await createGoal(apiGoal)
+      const frontendGoal = apiToFrontend(created, transactions)
+      setGoals([...goals, frontendGoal])
+      setOpen(false)
+      form.reset()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to create goal"
+      setError(errorMessage)
+      console.error("Error creating goal:", err)
     }
-    setGoals([...goals, newGoal])
-    setOpen(false)
-    e.currentTarget.reset()
   }
 
   const handleAddFunds = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const amount = Number.parseFloat(formData.get("amount") as string)
-
-    setGoals(
-      goals.map((goal) =>
-        goal.id === selectedGoalId ? { ...goal, current: Math.min(goal.current + amount, goal.target) } : goal,
-      ),
-    )
-
+    const form = e.currentTarget
+    // Note: The backend doesn't have a "current" field for goals.
+    // The current amount is calculated from transactions.
+    // Adding funds would actually mean creating a transaction in that category.
+    // For now, we'll just close the dialog and show a message.
     setAddFundsOpen(false)
     setSelectedGoalId(null)
-    e.currentTarget.reset()
+    form.reset()
+    // TODO: In the future, this could create a transaction in the goal's category
+    alert("To add funds to a goal, create a transaction in that category. This feature will be enhanced in the future.")
   }
 
   return (
@@ -98,7 +228,7 @@ export default function GoalsPage() {
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  <Plus className="mr-2 h-4 w-4" />
+                  <PlusIcon className="mr-2 h-4 w-4" />
                   Add New Goal
                 </Button>
               </DialogTrigger>
@@ -190,17 +320,29 @@ export default function GoalsPage() {
             </Card>
           </div>
 
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-500/50 bg-red-500/10 p-4 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isLoading && (
+            <div className="mb-8 text-center text-muted-foreground">Loading goals...</div>
+          )}
+
           {/* Goals Grid */}
-          {goals.length === 0 ? (
+          {!isLoading && goals.length === 0 ? (
             <Card className="border-border bg-card">
               <CardContent className="flex flex-col items-center justify-center py-16">
-                <Target className="mb-4 h-16 w-16 text-muted-foreground" />
+                <TargetIcon className="mb-4 h-16 w-16 text-muted-foreground" />
                 <h3 className="mb-2 text-lg font-semibold text-card-foreground">No Goals Yet</h3>
                 <p className="mb-4 text-center text-sm text-muted-foreground">
                   Start by creating your first savings goal
                 </p>
                 <Button onClick={() => setOpen(true)} className="bg-primary text-primary-foreground">
-                  <Plus className="mr-2 h-4 w-4" />
+                  <PlusIcon className="mr-2 h-4 w-4" />
                   Add Your First Goal
                 </Button>
               </CardContent>
@@ -217,7 +359,7 @@ export default function GoalsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           <div className={`rounded-lg p-2 ${goal.bgColor}`}>
-                            <goal.icon className={`h-5 w-5 ${goal.color}`} />
+                            {React.createElement(goal.icon as React.ComponentType<{ className?: string }>, { className: `h-5 w-5 ${goal.color}` })}
                           </div>
                           <div>
                             <CardTitle className="text-lg text-card-foreground">{goal.name}</CardTitle>

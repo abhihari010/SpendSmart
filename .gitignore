@@ -27,6 +27,7 @@ package-lock.json
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/.next/
 frontend/.env
 frontend/.DS_Store
 
