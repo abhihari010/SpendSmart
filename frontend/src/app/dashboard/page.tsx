@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React, { useState, useMemo } from "react"
 
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -20,12 +20,18 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState, useMemo } from "react"
 
 export default function DashboardPage() {
   const { isCollapsed } = useSidebar()
   const { transactions, addTransaction } = useTransactions()
   const [open, setOpen] = useState(false)
+
+  // Component variables to work around React 19 type compatibility
+  const PlusIcon = Plus as React.ComponentType<{ className?: string }>
+  const TrendingUpIcon = TrendingUp as React.ComponentType<{ className?: string }>
+  const TrendingDownIcon = TrendingDown as React.ComponentType<{ className?: string }>
+  const WalletIcon = Wallet as React.ComponentType<{ className?: string }>
+  const SparklesIcon = Sparkles as React.ComponentType<{ className?: string }>
 
   const totalIncome = useMemo(
     () => transactions.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0),
@@ -89,19 +95,34 @@ export default function DashboardPage() {
   const maxBalance = Math.max(...balanceTrendData.map((d) => d.balance), 100)
   const maxIncome = Math.max(...monthlyData.map((d) => Math.max(d.income, d.expense)), 100)
 
-  const handleAddTransaction = (e: React.FormEvent<HTMLFormElement>) => {
+  // AI-GENERATED (Cursor AI Assistant), 2025-01-XX
+  // Prompt: "Update handleAddTransaction to be async and work with the API. Also add a date
+  // input field to the form so users can select a date when creating transactions."
+  //
+  // Modifications by Abhishek:
+  // - Made function async to work with API calls
+  // - Added date field reading from form data
+  // - Fixed TypeScript error by storing e.currentTarget in form variable
+  // - Added date input field to the form with max attribute to prevent future dates
+  const handleAddTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     const type = formData.get("type") as string
     const amount = Number.parseFloat(formData.get("amount") as string)
-    addTransaction({
-      name: formData.get("name") as string,
-      date: new Date().toISOString().split("T")[0], // YYYY-MM-DD format
-      category: formData.get("category") as string,
-      amount: type === "expense" ? -Math.abs(amount) : Math.abs(amount),
-    })
-    setOpen(false)
-    e.currentTarget.reset()
+    try {
+      await addTransaction({
+        name: formData.get("name") as string,
+        date: (formData.get("date") as string) || new Date().toISOString().split("T")[0], // YYYY-MM-DD format
+        category: formData.get("category") as string,
+        amount: type === "expense" ? -Math.abs(amount) : Math.abs(amount),
+      })
+      setOpen(false)
+      form.reset()
+    } catch (error) {
+      console.error("Failed to add transaction:", error)
+      // You might want to show a toast/error message here
+    }
   }
 
   return (
@@ -123,7 +144,7 @@ export default function DashboardPage() {
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  <Plus className="mr-2 h-4 w-4" />
+                  <PlusIcon className="mr-2 h-4 w-4" />
                   Add Transaction
                 </Button>
               </DialogTrigger>
@@ -175,6 +196,20 @@ export default function DashboardPage() {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="date" className="text-popover-foreground">
+                      Date
+                    </Label>
+                    <Input
+                      id="date"
+                      name="date"
+                      type="date"
+                      defaultValue={new Date().toISOString().split("T")[0]}
+                      max={new Date().toISOString().split("T")[0]}
+                      required
+                      className="mt-1.5 border-input bg-background text-foreground"
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="category" className="text-popover-foreground">
                       Category
                     </Label>
@@ -210,7 +245,7 @@ export default function DashboardPage() {
             <Card className="border-border bg-card">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-card-foreground">Total Income</CardTitle>
-                <TrendingUp className="h-4 w-4 text-primary" />
+                <TrendingUpIcon className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-card-foreground">${totalIncome.toLocaleString()}</div>
@@ -222,7 +257,7 @@ export default function DashboardPage() {
             <Card className="border-border bg-card">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-card-foreground">Total Expenses</CardTitle>
-                <TrendingDown className="h-4 w-4 text-destructive" />
+                <TrendingDownIcon className="h-4 w-4 text-destructive" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-card-foreground">${totalExpenses.toFixed(2)}</div>
@@ -234,7 +269,7 @@ export default function DashboardPage() {
             <Card className="border-border bg-card">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-card-foreground">Balance</CardTitle>
-                <Wallet className="h-4 w-4 text-cyan-400" />
+                <WalletIcon className="h-4 w-4 text-cyan-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-card-foreground">${balance.toFixed(2)}</div>
@@ -244,7 +279,7 @@ export default function DashboardPage() {
             <Card className="border-border bg-card">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-card-foreground">Savings Rate</CardTitle>
-                <Sparkles className="h-4 w-4 text-primary" />
+                <SparklesIcon className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-primary">{savingsRate}%</div>

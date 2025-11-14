@@ -20,7 +20,33 @@ app.locals.goals = [];
 // Prompt: "Create a Zod schema for a transaction with date, amount, category,
 // and optional source (manual|receipt|card). Coerce amount to number."
 const TxSchema = z.object({
-  date: z.string().min(1, "date is required"),
+  // AI-GENERATED (Cursor AI Assistant), 2025-01-XX
+  // Prompt: "Add validation to the date field to ensure it's a valid date and not in the future.
+  // The date should be required and must be today or earlier."
+  //
+  // Modifications by Abhishek:
+  // - Added date format validation using .refine() to check if date is parseable
+  // - Added future date validation to prevent dates after today
+  // - Set today's time to end of day (23:59:59) to allow today's date
+  date: z
+    .string()
+    .min(1, "date is required")
+    .refine(
+      (dateStr) => {
+        const date = new Date(dateStr);
+        return !isNaN(date.getTime());
+      },
+      { message: "date must be a valid date" }
+    )
+    .refine(
+      (dateStr) => {
+        const date = new Date(dateStr);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // End of today
+        return date <= today;
+      },
+      { message: "date cannot be in the future" }
+    ),
   amount: z.coerce.number().finite("amount must be a number"),
   category: z.string().min(1, "category is required"),
   source: z.enum(["manual", "receipt", "card"]).optional().default("manual"),
