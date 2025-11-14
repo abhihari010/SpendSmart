@@ -8,6 +8,28 @@ we are including a IMPLEMENTATION.md file that explains the following:
 * What AI tools were used, how, and why.
 * Explain if any modifications were needed to the prompts/codes to get to the output.
 
+## Suraj Vinti
+
+### Feature Implemented
+I worked on the user-facing structure of the frontend, including:
+- Landing page (`page.tsx`)
+- Sidebar with routing to main pages (Home, Dashboard, Goals, Insights, Settings, Login, Signup)
+- Login and Signup UI shells with form fields and buttons
+- Basic Settings and Insights page shells for navigation completeness
+
+This provides the initial flow of the system and aligns with the design from PM3. The pages load correctly, routing works, and the UI structure is ready for future backend integration.
+
+### AI Usage
+I used ChatGPT for:
+- Generating basic mock data to test component rendering since backend has not been connected fully yet.
+- Minor TypeScript bug fixes (e.g., prop types or syntax issues).
+- Minor formatting issues with charts/dates.
+
+The AI-assisted code worked as intended with a few small tweaks
+
+### Modifications After AI Assistance
+I manually edited the mock data to fit our project fields and corrected any AI-suggested fixes to match our component structure and file organization.
+
 ## Alexander Peal
 
 * I implemented the goals feature.
