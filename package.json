@@ -12,7 +12,9 @@
     "postinstall": "echo \"Use 'npm install -w frontend' and 'npm install -w backend' to install per workspace if needed.\""
   },
   "devDependencies": {
-    "concurrently": "^9.0.1"
+    "concurrently": "^9.0.1",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

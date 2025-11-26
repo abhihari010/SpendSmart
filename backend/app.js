@@ -121,21 +121,21 @@ app.get("/api/transactions", (req, res) => {
  * @alexanderpeal
  *
  * AI-GENERATED (Sonnet 4.5), 2025-11-13
- * 
+ *
  * Prompt 1:
- * 
+ *
  * Analyze this repo, it's supposed to be a barebones repo for a simple budgeting app.
  * Tell me the existing functionality, and help me implement a simple feature for
- * tracking budgeting goals. 
- * 
+ * tracking budgeting goals.
+ *
  * (... output suggests creating CRUD endpoints for goals ... )
- * 
+ *
  * Prompt 2:
- * 
+ *
  * Show me how to create endpoints based on what you suggested.
  * Maybe have it pull from req.apps.locals.tx.push. Doesn't need to
  * be working code - prioritize simplicity.
- * 
+ *
  * Follow these guidelines:
  * Create goal: Should be a POST, similar to parsed data in api/transactions
  * Get goals: Return all active goals
@@ -223,7 +223,12 @@ app.put("/api/goals/:id", (req, res) => {
 
 // End of @alexanderpeal's section
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () =>
-  console.log(`Backend listening on http://localhost:${PORT}`)
-);
+export default app;
+
+// 👇 Only start the server when this file is run directly, not when imported by Jest
+if (process.argv[1] === new URL(import.meta.url).pathname) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () =>
+    console.log(`Backend listening on http://localhost:${PORT}`)
+  );
+}
