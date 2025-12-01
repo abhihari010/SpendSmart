@@ -3,6 +3,7 @@ import { Wallet } from "lucide-react"
 import Link from "next/link"
 
 export default function LandingPage() {
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Header */}
