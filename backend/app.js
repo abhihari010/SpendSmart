@@ -61,6 +61,7 @@ const TxSchema = z.object({
     ),
   amount: z.coerce.number().finite("amount must be a number"),
   category: z.string().min(1, "category is required"),
+  description: z.string().optional(),
   source: z.enum(["manual", "receipt", "card"]).optional().default("manual"),
 });
 
@@ -105,13 +106,14 @@ app.post("/api/transactions", (req, res) => {
     });
   }
 
-  const { date, amount, category, source } = parsed.data;
+  const { date, amount, category, description, source } = parsed.data;
 
   const record = {
     id: Date.now().toString(),
     date,
     amount,
     category,
+    description, // will be included if provided
     source, // will default to "manual" if not provided
   };
 
