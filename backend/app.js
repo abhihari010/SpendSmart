@@ -226,9 +226,18 @@ app.put("/api/goals/:id", (req, res) => {
 export default app;
 
 // 👇 Only start the server when this file is run directly, not when imported by Jest
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+
+// if (process.argv[1] === new URL(import.meta.url).pathname) {
+//   const PORT = process.env.PORT || 3001;
+//   app.listen(PORT, () =>
+//     console.log(`Backend listening on http://localhost:${PORT}`)
+//   );
+// }
+
+if (process.env.NODE_ENV !== "test") {
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () =>
     console.log(`Backend listening on http://localhost:${PORT}`)
   );
 }
+
