@@ -382,6 +382,7 @@ export default function DashboardPage() {
               </DialogContent>
             </Dialog>
           </div>
+          </div>
 
           {/* Metric Cards */}
           <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
