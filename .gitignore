@@ -37,6 +37,9 @@ frontend/.vite_temp/
 # TypeScript
 frontend/*.tsbuildinfo
 
+# Next.js build output
+frontend/.next/
+
 # =====================================================
 #  BACKEND (Express)
 # =====================================================

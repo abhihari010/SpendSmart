@@ -114,6 +114,37 @@ export async function updateGoal(
   return response.json()
 }
 
+// Receipt ingestion API
+export interface ReceiptIngestResponse {
+  suite: string
+  raw: {
+    date: string
+    amount: number
+    category: string
+    merchant: string
+    rawText: string
+    note: string
+  }
+  normalized: ApiTransaction
+}
+
+export async function ingestReceipt(file: File): Promise<ReceiptIngestResponse> {
+  const formData = new FormData()
+  formData.append("file", file)
+  
+  const response = await fetch(`${API_BASE_URL}/api/ingest?suite=receipt`, {
+    method: "POST",
+    body: formData,
+  })
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }))
+    throw new Error(error.error || `Failed to scan receipt: ${response.statusText}`)
+  }
+  
+  return response.json()
+}
+
 // Health check
 export async function checkHealth(): Promise<{ ok: boolean }> {
   const response = await fetch(`${API_BASE_URL}/api/health`)

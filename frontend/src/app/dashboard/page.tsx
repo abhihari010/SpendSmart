@@ -8,7 +8,7 @@ import { useSidebar } from "@/components/sidebar-provider"
 import { useTransactions } from "@/components/transaction-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, TrendingUp, TrendingDown, Wallet, Sparkles } from "lucide-react"
+import { Plus, TrendingUp, TrendingDown, Wallet, Sparkles, Scan } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -20,11 +20,16 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ingestReceipt } from "@/lib/api"
 
 export default function DashboardPage() {
   const { isCollapsed } = useSidebar()
   const { transactions, addTransaction } = useTransactions()
   const [open, setOpen] = useState(false)
+  const [receiptOpen, setReceiptOpen] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
+  const [scanResult, setScanResult] = useState<any>(null)
 
   // Component variables to work around React 19 type compatibility
   const PlusIcon = Plus as React.ComponentType<{ className?: string }>
@@ -32,6 +37,7 @@ export default function DashboardPage() {
   const TrendingDownIcon = TrendingDown as React.ComponentType<{ className?: string }>
   const WalletIcon = Wallet as React.ComponentType<{ className?: string }>
   const SparklesIcon = Sparkles as React.ComponentType<{ className?: string }>
+  const ScanIcon = Scan as React.ComponentType<{ className?: string }>
 
   const totalIncome = useMemo(
     () => transactions.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0),
@@ -125,6 +131,49 @@ export default function DashboardPage() {
     }
   }
 
+  const handleReceiptScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Show preview
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setReceiptPreview(event.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+
+    // Scan receipt
+    setScanning(true)
+    setScanResult(null)
+    try {
+      const result = await ingestReceipt(file)
+      setScanResult(result)
+    } catch (error) {
+      console.error("Failed to scan receipt:", error)
+      setScanResult({ error: error instanceof Error ? error.message : "Failed to scan receipt" })
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  const handleConfirmReceiptTransaction = async () => {
+    if (!scanResult?.normalized) return
+
+    try {
+      await addTransaction({
+        name: scanResult.raw.merchant || scanResult.raw.category || "Receipt",
+        date: scanResult.normalized.date,
+        category: scanResult.normalized.category,
+        amount: scanResult.normalized.amount,
+      })
+      setReceiptOpen(false)
+      setReceiptPreview(null)
+      setScanResult(null)
+    } catch (error) {
+      console.error("Failed to add receipt transaction:", error)
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
@@ -141,13 +190,107 @@ export default function DashboardPage() {
               <h1 className="mb-1 text-2xl font-semibold text-foreground">Welcome back, Suraj!</h1>
               <p className="text-sm text-muted-foreground">{"Here's your financial overview for November 2025"}</p>
             </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  <PlusIcon className="mr-2 h-4 w-4" />
-                  Add Transaction
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <Dialog open={receiptOpen} onOpenChange={setReceiptOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-input">
+                    <ScanIcon className="mr-2 h-4 w-4" />
+                    Scan Receipt
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle className="text-popover-foreground">Scan Receipt</DialogTitle>
+                    <DialogDescription>Upload a receipt image to automatically extract transaction details</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="receipt-file" className="text-popover-foreground">
+                        Receipt Image
+                      </Label>
+                      <Input
+                        id="receipt-file"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleReceiptScan}
+                        className="mt-1.5 border-input bg-background text-foreground"
+                        disabled={scanning}
+                      />
+                    </div>
+                    {receiptPreview && (
+                      <div>
+                        <Label className="text-popover-foreground">Preview</Label>
+                        <img
+                          src={receiptPreview}
+                          alt="Receipt preview"
+                          className="mt-1.5 max-h-48 w-full rounded border border-input object-contain"
+                        />
+                      </div>
+                    )}
+                    {scanning && (
+                      <div className="text-center text-sm text-muted-foreground">
+                        Scanning receipt... This may take a moment.
+                      </div>
+                    )}
+                    {scanResult && !scanResult.error && (
+                      <div className="space-y-2 rounded border border-input bg-background p-4">
+                        <h4 className="font-semibold text-foreground">Extracted Information</h4>
+                        <div className="space-y-1 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Merchant: </span>
+                            <span className="text-foreground">{scanResult.raw.merchant || "Unknown"}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Amount: </span>
+                            <span className="text-foreground">${Math.abs(scanResult.normalized.amount).toFixed(2)}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Date: </span>
+                            <span className="text-foreground">{scanResult.normalized.date}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Category: </span>
+                            <span className="text-foreground">{scanResult.normalized.category}</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setReceiptOpen(false)
+                              setReceiptPreview(null)
+                              setScanResult(null)
+                            }}
+                            className="border-input"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={handleConfirmReceiptTransaction}
+                            className="bg-primary text-primary-foreground"
+                          >
+                            Add Transaction
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {scanResult?.error && (
+                      <div className="rounded border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
+                        {scanResult.error}
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    Add Transaction
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle className="text-popover-foreground">Add Transaction</DialogTitle>
