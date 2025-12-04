@@ -12,6 +12,66 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
+// Auth API calls
+export interface AuthResponse {
+  success: boolean;
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+export async function register(userData: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+    credentials: 'include'
+  });
+  return handleResponse(response);
+}
+
+export async function login(credentials: { email: string; password: string }) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // Important for cookies
+    body: JSON.stringify(credentials),
+  });
+
+  return handleResponse(response);
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+}
+
+async function handleResponse(response: Response) {
+  const data = await response.json();
+  if (!response.ok) {
+    if (response.status === 401) {
+      // Handle unauthorized
+      window.location.href = '/login';
+    }
+    const error = (data && data.message) || response.statusText;
+    return Promise.reject(error);
+  }
+  return data;
+}
+
 export interface ApiTransaction {
   id: string
   date: string
