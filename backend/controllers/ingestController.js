@@ -12,14 +12,29 @@ import { selectFactory } from "../inputSuite/factory.js";
  *
  * Edits by Abhishek:
  * - Added safer optional chaining and clearer error payload
+ * 
+ * Receipt scanning support:
+ * - Added file upload handling for receipt suite
+ * - Supports both JSON (manual) and multipart/form-data (receipt) payloads
  */
 
 export async function ingest(req, res) {
   try {
-    const suite = (req.query.suite || "manual").toString(); // manual | receipt (not yet implemented) | card (not yet implemented)
+    const suite = (req.query.suite || "manual").toString(); // manual | receipt | card (not yet implemented)
     const factory = selectFactory(suite);
+    
+    if (!factory) {
+      return res.status(400).json({ error: `Suite '${suite}' is not implemented` });
+    }
+    
     const source = factory.makeSource();
-    const raw = await source.fetch(req.body || {}); // may use body for manual
+    
+    // For receipt suite, use req.file (from multer), otherwise use req.body
+    const payload = suite === "receipt" 
+      ? { file: req.file } 
+      : (req.body || {});
+    
+    const raw = await source.fetch(payload);
     const normalizer = factory.makeNormalizer();
     const tx = normalizer.normalize(raw);
     return res.json({ suite, raw, normalized: tx });
