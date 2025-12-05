@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ingestReceipt } from "@/lib/api"
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DashboardPage() {
   const { isCollapsed } = useSidebar()
@@ -31,6 +32,7 @@ export default function DashboardPage() {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
   const [scanResult, setScanResult] = useState<any>(null)
 
+  const { user } = useAuth();
   // Component variables to work around React 19 type compatibility
   const PlusIcon = Plus as React.ComponentType<{ className?: string }>
   const TrendingUpIcon = TrendingUp as React.ComponentType<{ className?: string }>
@@ -187,7 +189,7 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <h1 className="mb-1 text-2xl font-semibold text-foreground">Welcome back, Suraj!</h1>
+              <h1 className="mb-1 text-2xl font-semibold text-foreground">Welcome back, {user?.firstName}!</h1>
               <p className="text-sm text-muted-foreground">{"Here's your financial overview for November 2025"}</p>
             </div>
             <div className="flex gap-2">
