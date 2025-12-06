@@ -139,9 +139,9 @@ app.get("/api/transactions", (req, res) => {
  * SpendSmart backend — Routes for spending goals
  * @alexanderpeal
  *
- * AI-GENERATED (Sonnet 4.5), 2025-11-13
+ * AI-GENERATED (Sonnet 4.5)
  *
- * Prompt 1:
+ * Prompt 1: (2025-11-13)
  *
  * Analyze this repo, it's supposed to be a barebones repo for a simple budgeting app.
  * Tell me the existing functionality, and help me implement a simple feature for
@@ -149,7 +149,7 @@ app.get("/api/transactions", (req, res) => {
  *
  * (... output suggests creating CRUD endpoints for goals ... )
  *
- * Prompt 2:
+ * Prompt 2: (2025-11-13)
  *
  * Show me how to create endpoints based on what you suggested.
  * Maybe have it pull from req.apps.locals.tx.push. Doesn't need to
@@ -159,6 +159,12 @@ app.get("/api/transactions", (req, res) => {
  * Create goal: Should be a POST, similar to parsed data in api/transactions
  * Get goals: Return all active goals
  * Update goal: given a goal id, update the goal.
+ * 
+ * Prompt 3: (2025-12-05)
+ * 
+ * Add a new feature - deletion for app.js under routes for spending goals.
+ * Follow the same format as the previous routes for spending goals.
+ * 
  */
 app.post("/api/goals", (req, res) => {
   const parsed = GoalSchema.safeParse(req.body);
@@ -238,6 +244,23 @@ app.put("/api/goals/:id", (req, res) => {
 
   goals[goalIndex] = updatedGoal;
   return res.json(updatedGoal);
+});
+
+// DELETE /api/goals/:id - Delete an existing goal
+app.delete("/api/goals/:id", (req, res) => {
+  const goalId = req.params.id;
+  const goals = req.app.locals.goals || [];
+
+  // Find the goal by ID
+  const goalIndex = goals.findIndex((g) => g.id === goalId);
+
+  if (goalIndex === -1) {
+    return res.status(404).json({ error: "Goal not found" });
+  }
+
+  // Remove the goal from the array
+  const deletedGoal = goals.splice(goalIndex, 1)[0];
+  return res.json({ message: "Goal deleted successfully", goal: deletedGoal });
 });
 
 // End of @alexanderpeal's section
