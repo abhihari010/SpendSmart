@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon app.js",
     "start": "node app.js",
-    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js __tests__/*.test.mjs",
+    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js __tests__/receipt.test.mjs",
     "test:unit": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js __tests__/!(integration).test.mjs",
     "test:integration": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js __tests__/integration.test.mjs",
     "test:all": "npm run test:unit && npm run test:integration"
