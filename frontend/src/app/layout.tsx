@@ -6,6 +6,7 @@ import "./globals.css"
 import { SidebarProvider } from "@/components/sidebar-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TransactionProvider } from "@/components/transaction-provider"
+import { AuthProvider } from '@/contexts/AuthContext'
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -42,9 +43,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans antialiased`}>
         <ThemeProvider>
-          <SidebarProvider>
-            <TransactionProvider>{children}</TransactionProvider>
-          </SidebarProvider>
+          <AuthProvider>
+            <SidebarProvider>
+              <TransactionProvider>{children}</TransactionProvider>
+            </SidebarProvider>
+          </AuthProvider>
         </ThemeProvider>
         <Analytics />
       </body>

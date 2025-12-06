@@ -1,15 +1,27 @@
-// Express backend for SpendSmart starter
-import express from "express";
-import cors from "cors";
-import morgan from "morgan";
-import ingestRouter from "./routes/ingest.js";
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(morgan("dev"));
-app.use("/api/ingest", ingestRouter);
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import connectDB from './config/db.js';
+import ingestRouter from './routes/ingest.js';
+import authRouter from './routes/auth.js';
 import { z } from "zod";
+
+dotenv.config();
+
+connectDB();
+const app = express();
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+app.use(express.json());
+app.use(cookieParser());
+app.use(morgan('dev'));
 
 // Initialize in-memory storage
 app.locals.tx = [];
@@ -49,6 +61,7 @@ const TxSchema = z.object({
     ),
   amount: z.coerce.number().finite("amount must be a number"),
   category: z.string().min(1, "category is required"),
+  description: z.string().optional(),
   source: z.enum(["manual", "receipt", "card"]).optional().default("manual"),
 });
 
@@ -75,6 +88,11 @@ const GoalSchema = z.object({
  * - Tweaked error messages for clarity
  * - Kept endpoints minimal for milestone demo
  */
+
+// Routes
+app.use('/api/ingest', ingestRouter);
+app.use('/api/v1/auth', authRouter);
+
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 app.post("/api/transactions", (req, res) => {
@@ -88,13 +106,14 @@ app.post("/api/transactions", (req, res) => {
     });
   }
 
-  const { date, amount, category, source } = parsed.data;
+  const { date, amount, category, description, source } = parsed.data;
 
   const record = {
     id: Date.now().toString(),
     date,
     amount,
     category,
+    description, // will be included if provided
     source, // will default to "manual" if not provided
   };
 
@@ -121,21 +140,21 @@ app.get("/api/transactions", (req, res) => {
  * @alexanderpeal
  *
  * AI-GENERATED (Sonnet 4.5), 2025-11-13
- * 
+ *
  * Prompt 1:
- * 
+ *
  * Analyze this repo, it's supposed to be a barebones repo for a simple budgeting app.
  * Tell me the existing functionality, and help me implement a simple feature for
- * tracking budgeting goals. 
- * 
+ * tracking budgeting goals.
+ *
  * (... output suggests creating CRUD endpoints for goals ... )
- * 
+ *
  * Prompt 2:
- * 
+ *
  * Show me how to create endpoints based on what you suggested.
  * Maybe have it pull from req.apps.locals.tx.push. Doesn't need to
  * be working code - prioritize simplicity.
- * 
+ *
  * Follow these guidelines:
  * Create goal: Should be a POST, similar to parsed data in api/transactions
  * Get goals: Return all active goals
@@ -222,8 +241,21 @@ app.put("/api/goals/:id", (req, res) => {
 });
 
 // End of @alexanderpeal's section
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    success: false,
+    error: 'Server Error' 
+  });
+});
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () =>
-  console.log(`Backend listening on http://localhost:${PORT}`)
-);
+export default app;
+
+// Only start the HTTP server when *not* running tests
+if (process.env.NODE_ENV !== "test") {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Backend listening on http://localhost:${PORT}`);
+  });
+}
+

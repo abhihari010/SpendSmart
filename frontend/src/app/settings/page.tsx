@@ -13,10 +13,12 @@ import { CreditCard, Lock, Bell, Moon, Trash2 } from "lucide-react"
 import { useSidebar } from "@/components/sidebar-provider"
 import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function SettingsPage() {
   const { isCollapsed } = useSidebar()
   const { theme, toggleTheme } = useTheme()
+  const { user } = useAuth();
 
   // Component variables to work around React 19 type compatibility
   const CreditCardIcon = CreditCard as React.ComponentType<{ className?: string }>
@@ -52,7 +54,7 @@ export default function SettingsPage() {
                 <CardContent className="space-y-6">
                   <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16 bg-primary text-primary-foreground">
-                      <AvatarFallback className="text-lg font-semibold">SV</AvatarFallback>
+                      <AvatarFallback className="text-lg font-semibold">{user?.firstName?.[0]}{user?.lastName?.[0]}</AvatarFallback>
                     </Avatar>
                     <Button variant="outline" size="sm">
                       Change Photo
@@ -64,13 +66,13 @@ export default function SettingsPage() {
                       <Label htmlFor="firstName" className="text-card-foreground">
                         First Name
                       </Label>
-                      <Input id="firstName" defaultValue="Suraj" className="mt-1.5 bg-background" />
+                      <Input id="firstName" defaultValue={user?.firstName} className="mt-1.5 bg-background" />
                     </div>
                     <div>
                       <Label htmlFor="lastName" className="text-card-foreground">
                         Last Name
                       </Label>
-                      <Input id="lastName" defaultValue="Vinti" className="mt-1.5 bg-background" />
+                      <Input id="lastName" defaultValue={user?.lastName} className="mt-1.5 bg-background" />
                     </div>
                   </div>
 
@@ -82,7 +84,7 @@ export default function SettingsPage() {
                       <Input
                         id="email"
                         type="email"
-                        defaultValue="suraj.vinti@email.com"
+                        defaultValue={user?.email}
                         className="flex-1 bg-background"
                       />
                       <Button variant="outline">Verify</Button>

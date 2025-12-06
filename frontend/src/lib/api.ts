@@ -12,6 +12,66 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
+// Auth API calls
+export interface AuthResponse {
+  success: boolean;
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+export async function register(userData: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+    credentials: 'include'
+  });
+  return handleResponse(response);
+}
+
+export async function login(credentials: { email: string; password: string }) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // Important for cookies
+    body: JSON.stringify(credentials),
+  });
+
+  return handleResponse(response);
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+}
+
+async function handleResponse(response: Response) {
+  const data = await response.json();
+  if (!response.ok) {
+    if (response.status === 401) {
+      // Handle unauthorized
+      window.location.href = '/login';
+    }
+    const error = (data && data.message) || response.statusText;
+    return Promise.reject(error);
+  }
+  return data;
+}
+
 export interface ApiTransaction {
   id: string
   date: string
@@ -38,90 +98,171 @@ export async function fetchTransactions(from?: string, to?: string): Promise<Api
   if (to) params.append("to", to)
   
   const url = `${API_BASE_URL}/api/transactions${params.toString() ? `?${params.toString()}` : ""}`
-  const response = await fetch(url)
   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch transactions: ${response.statusText}`)
+  try {
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch transactions: ${response.statusText}`)
+    }
+    
+    return response.json()
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Make sure the backend is running on port 3001.`)
+    }
+    throw error
   }
-  
-  return response.json()
 }
 
 export async function createTransaction(
   transaction: Omit<ApiTransaction, "id">
 ): Promise<ApiTransaction> {
-  const response = await fetch(`${API_BASE_URL}/api/transactions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(transaction),
-  })
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }))
-    throw new Error(error.error || `Failed to create transaction: ${response.statusText}`)
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/transactions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(transaction),
+    })
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText }))
+      throw new Error(error.error || `Failed to create transaction: ${response.statusText}`)
+    }
+    
+    return response.json()
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Make sure the backend is running on port 3001.`)
+    }
+    throw error
   }
-  
-  return response.json()
 }
 
 // Goals API calls
 export async function fetchGoals(): Promise<ApiGoal[]> {
-  const response = await fetch(`${API_BASE_URL}/api/goals`)
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch goals: ${response.statusText}`)
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/goals`)
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch goals: ${response.statusText}`)
+    }
+    
+    return response.json()
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Make sure the backend is running on port 3001.`)
+    }
+    throw error
   }
-  
-  return response.json()
 }
 
 export async function createGoal(goal: Omit<ApiGoal, "id" | "createdAt" | "updatedAt">): Promise<ApiGoal> {
-  const response = await fetch(`${API_BASE_URL}/api/goals`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(goal),
-  })
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }))
-    throw new Error(error.error || `Failed to create goal: ${response.statusText}`)
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/goals`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(goal),
+    })
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText }))
+      throw new Error(error.error || `Failed to create goal: ${response.statusText}`)
+    }
+    
+    return response.json()
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Make sure the backend is running on port 3001.`)
+    }
+    throw error
   }
-  
-  return response.json()
 }
 
 export async function updateGoal(
   goalId: string,
   updates: Partial<Omit<ApiGoal, "id" | "createdAt" | "updatedAt">>
 ): Promise<ApiGoal> {
-  const response = await fetch(`${API_BASE_URL}/api/goals/${goalId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(updates),
-  })
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }))
-    throw new Error(error.error || `Failed to update goal: ${response.statusText}`)
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/goals/${goalId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updates),
+    })
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText }))
+      throw new Error(error.error || `Failed to update goal: ${response.statusText}`)
+    }
+    
+    return response.json()
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Make sure the backend is running on port 3001.`)
+    }
+    throw error
   }
+}
+
+// Receipt ingestion API
+export interface ReceiptIngestResponse {
+  suite: string
+  raw: {
+    date: string
+    amount: number
+    category: string
+    merchant: string
+    rawText: string
+    note: string
+  }
+  normalized: ApiTransaction
+}
+
+export async function ingestReceipt(file: File): Promise<ReceiptIngestResponse> {
+  const formData = new FormData()
+  formData.append("file", file)
   
-  return response.json()
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/ingest?suite=receipt`, {
+      method: "POST",
+      body: formData,
+    })
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText }))
+      throw new Error(error.error || `Failed to scan receipt: ${response.statusText}`)
+    }
+    
+    return response.json()
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Make sure the backend is running on port 3001.`)
+    }
+    throw error
+  }
 }
 
 // Health check
 export async function checkHealth(): Promise<{ ok: boolean }> {
-  const response = await fetch(`${API_BASE_URL}/api/health`)
-  
-  if (!response.ok) {
-    throw new Error(`Health check failed: ${response.statusText}`)
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/health`)
+    
+    if (!response.ok) {
+      throw new Error(`Health check failed: ${response.statusText}`)
+    }
+    
+    return response.json()
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new Error(`Cannot connect to backend server at ${API_BASE_URL}. Make sure the backend is running on port 3001.`)
+    }
+    throw error
   }
-  
-  return response.json()
 }
 
