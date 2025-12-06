@@ -3,13 +3,10 @@
  * Prompt:
  * "Write Jest tests for selectFactory that currently returns ManualFactory
  *  for manual/undefined and null for receipt/card."
- * 
- * Updated to reflect receipt factory implementation
  */
 
 import { selectFactory } from "../inputSuite/factory.js";
 import { ManualFactory } from "../inputSuite/manual.js";
-import { ReceiptFactory } from "../inputSuite/receipt.js";
 
 describe("selectFactory", () => {
   test("returns ManualFactory when kind is 'manual'", () => {
@@ -22,9 +19,9 @@ describe("selectFactory", () => {
     expect(factory).toBeInstanceOf(ManualFactory);
   });
 
-  test("returns ReceiptFactory when kind is 'receipt'", () => {
+  test("returns null for 'receipt' (not yet implemented)", () => {
     const factory = selectFactory("receipt");
-    expect(factory).toBeInstanceOf(ReceiptFactory);
+    expect(factory).toBeNull();
   });
 
   test("returns null for 'card' (not yet implemented)", () => {
