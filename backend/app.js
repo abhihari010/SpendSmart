@@ -251,6 +251,15 @@ app.use((err, req, res, next) => {
 
 export default app;
 
+// 👇 Only start the server when this file is run directly, not when imported by Jest
+
+// if (process.argv[1] === new URL(import.meta.url).pathname) {
+//   const PORT = process.env.PORT || 3001;
+//   app.listen(PORT, () =>
+//     console.log(`Backend listening on http://localhost:${PORT}`)
+//   );
+// }
+
 // Only start the HTTP server when *not* running tests
 if (process.env.NODE_ENV !== "test") {
   const PORT = process.env.PORT || 3001;
@@ -259,3 +268,4 @@ if (process.env.NODE_ENV !== "test") {
   });
 }
 
+export default app;
