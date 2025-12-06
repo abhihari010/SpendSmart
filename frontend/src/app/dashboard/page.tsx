@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [scanResult, setScanResult] = useState<any>(null)
 
   const { user } = useAuth();
-  // Component variables to work around React 19 type compatibility
+
   const PlusIcon = Plus as React.ComponentType<{ className?: string }>
   const TrendingUpIcon = TrendingUp as React.ComponentType<{ className?: string }>
   const TrendingDownIcon = TrendingDown as React.ComponentType<{ className?: string }>
@@ -49,6 +49,7 @@ export default function DashboardPage() {
     () => Math.abs(transactions.filter((t) => t.amount < 0).reduce((sum, t) => sum + t.amount, 0)),
     [transactions],
   )
+
   const balance = totalIncome - totalExpenses
   const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0
 
@@ -64,54 +65,63 @@ export default function DashboardPage() {
 
   const totalCategorySpending = Object.values(categorySpending).reduce((sum, val) => sum + val, 0)
 
+  /* -------------------------------
+     FIXED: DYNAMIC LAST 6 MONTHS
+  --------------------------------*/
   const monthlyData = useMemo(() => {
-    const months = ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"]
-    const currentDate = new Date(2025, 10) // November 2025
+    const now = new Date()
+    const months = []
 
-    return months.map((monthName, index) => {
-      const monthDate = new Date(2025, 5 + index) // Start from June (month 5)
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const monthName = d.toLocaleString("default", { month: "short" })
+      const monthIndex = d.getMonth()
+      const year = d.getFullYear()
+
       const monthTransactions = transactions.filter((t) => {
-        const tDate = new Date(t.date)
-        return tDate.getMonth() === monthDate.getMonth() && tDate.getFullYear() === monthDate.getFullYear()
+        const td = new Date(t.date)
+        return td.getMonth() === monthIndex && td.getFullYear() === year
       })
 
       const income = monthTransactions.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
-      const expense = Math.abs(monthTransactions.filter((t) => t.amount < 0).reduce((sum, t) => sum + t.amount, 0))
+      const expense = Math.abs(
+        monthTransactions.filter((t) => t.amount < 0).reduce((sum, t) => sum + t.amount, 0),
+      )
 
-      return { month: monthName, income, expense }
-    })
+      months.push({ month: monthName, income, expense })
+    }
+
+    return months
   }, [transactions])
 
   const balanceTrendData = useMemo(() => {
-    const months = ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"]
+    const now = new Date()
+    const months = []
     let cumulativeBalance = 0
 
-    return months.map((monthName, index) => {
-      const monthDate = new Date(2025, 5 + index)
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const monthName = d.toLocaleString("default", { month: "short" })
+      const monthIndex = d.getMonth()
+      const year = d.getFullYear()
+
       const monthTransactions = transactions.filter((t) => {
-        const tDate = new Date(t.date)
-        return tDate.getMonth() === monthDate.getMonth() && tDate.getFullYear() === monthDate.getFullYear()
+        const td = new Date(t.date)
+        return td.getMonth() === monthIndex && td.getFullYear() === year
       })
 
       const monthBalance = monthTransactions.reduce((sum, t) => sum + t.amount, 0)
       cumulativeBalance += monthBalance
 
-      return { month: monthName, balance: cumulativeBalance }
-    })
+      months.push({ month: monthName, balance: cumulativeBalance })
+    }
+
+    return months
   }, [transactions])
 
   const maxBalance = Math.max(...balanceTrendData.map((d) => d.balance), 100)
   const maxIncome = Math.max(...monthlyData.map((d) => Math.max(d.income, d.expense)), 100)
 
-  // AI-GENERATED (Cursor AI Assistant), 2025-01-XX
-  // Prompt: "Update handleAddTransaction to be async and work with the API. Also add a date
-  // input field to the form so users can select a date when creating transactions."
-  //
-  // Modifications by Abhishek:
-  // - Made function async to work with API calls
-  // - Added date field reading from form data
-  // - Fixed TypeScript error by storing e.currentTarget in form variable
-  // - Added date input field to the form with max attribute to prevent future dates
   const handleAddTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = e.currentTarget
@@ -121,7 +131,7 @@ export default function DashboardPage() {
     try {
       await addTransaction({
         name: formData.get("name") as string,
-        date: (formData.get("date") as string) || new Date().toISOString().split("T")[0], // YYYY-MM-DD format
+        date: (formData.get("date") as string) || new Date().toISOString().split("T")[0],
         category: formData.get("category") as string,
         amount: type === "expense" ? -Math.abs(amount) : Math.abs(amount),
       })
@@ -129,7 +139,6 @@ export default function DashboardPage() {
       form.reset()
     } catch (error) {
       console.error("Failed to add transaction:", error)
-      // You might want to show a toast/error message here
     }
   }
 
@@ -137,14 +146,12 @@ export default function DashboardPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Show preview
     const reader = new FileReader()
     reader.onload = (event) => {
       setReceiptPreview(event.target?.result as string)
     }
     reader.readAsDataURL(file)
 
-    // Scan receipt
     setScanning(true)
     setScanResult(null)
     try {
@@ -186,6 +193,7 @@ export default function DashboardPage() {
         )}
       >
         <div className="p-8">
+
           {/* Header */}
           <div className="mb-8 flex items-center justify-between">
             <div>
@@ -193,6 +201,8 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">{"Here's your financial overview for November 2025"}</p>
             </div>
             <div className="flex gap-2">
+
+              {/* Receipt Scan */}
               <Dialog open={receiptOpen} onOpenChange={setReceiptOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="border-input">
@@ -230,51 +240,20 @@ export default function DashboardPage() {
                       </div>
                     )}
                     {scanning && (
-                      <div className="text-center text-sm text-muted-foreground">
-                        Scanning receipt... This may take a moment.
-                      </div>
+                      <div className="text-center text-sm text-muted-foreground">Scanning receipt...</div>
                     )}
                     {scanResult && !scanResult.error && (
                       <div className="space-y-2 rounded border border-input bg-background p-4">
                         <h4 className="font-semibold text-foreground">Extracted Information</h4>
                         <div className="space-y-1 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Merchant: </span>
-                            <span className="text-foreground">{scanResult.raw.merchant || "Unknown"}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Amount: </span>
-                            <span className="text-foreground">${Math.abs(scanResult.normalized.amount).toFixed(2)}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Date: </span>
-                            <span className="text-foreground">{scanResult.normalized.date}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Category: </span>
-                            <span className="text-foreground">{scanResult.normalized.category}</span>
-                          </div>
+                          <div><span className="text-muted-foreground">Merchant: </span>{scanResult.raw.merchant || "Unknown"}</div>
+                          <div><span className="text-muted-foreground">Amount: </span>${Math.abs(scanResult.normalized.amount).toFixed(2)}</div>
+                          <div><span className="text-muted-foreground">Date: </span>{scanResult.normalized.date}</div>
+                          <div><span className="text-muted-foreground">Category: </span>{scanResult.normalized.category}</div>
                         </div>
                         <div className="flex justify-end gap-2 pt-4">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              setReceiptOpen(false)
-                              setReceiptPreview(null)
-                              setScanResult(null)
-                            }}
-                            className="border-input"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={handleConfirmReceiptTransaction}
-                            className="bg-primary text-primary-foreground"
-                          >
-                            Add Transaction
-                          </Button>
+                          <Button variant="outline" onClick={() => { setReceiptOpen(false); setReceiptPreview(null); setScanResult(null); }} className="border-input">Cancel</Button>
+                          <Button onClick={handleConfirmReceiptTransaction} className="bg-primary text-primary-foreground">Add Transaction</Button>
                         </div>
                       </div>
                     )}
@@ -286,6 +265,8 @@ export default function DashboardPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+
+              {/* Add Transaction */}
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
@@ -293,97 +274,70 @@ export default function DashboardPage() {
                     Add Transaction
                   </Button>
                 </DialogTrigger>
-              <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle className="text-popover-foreground">Add Transaction</DialogTitle>
-                  <DialogDescription>Enter the details of your transaction</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleAddTransaction} className="space-y-4">
-                  <div>
-                    <Label htmlFor="type" className="text-popover-foreground">
-                      Type
-                    </Label>
-                    <Select name="type" defaultValue="expense" required>
-                      <SelectTrigger className="mt-1.5 border-input bg-background text-foreground">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent className="border-border bg-popover text-popover-foreground">
-                        <SelectItem value="expense">Expense</SelectItem>
-                        <SelectItem value="income">Income</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="name" className="text-popover-foreground">
-                      Transaction Name
-                    </Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      placeholder="e.g., Grocery Store"
-                      required
-                      className="mt-1.5 border-input bg-background text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="amount" className="text-popover-foreground">
-                      Amount
-                    </Label>
-                    <Input
-                      id="amount"
-                      name="amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
-                      required
-                      className="mt-1.5 border-input bg-background text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="date" className="text-popover-foreground">
-                      Date
-                    </Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="date"
-                      defaultValue={new Date().toISOString().split("T")[0]}
-                      max={new Date().toISOString().split("T")[0]}
-                      required
-                      className="mt-1.5 border-input bg-background text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category" className="text-popover-foreground">
-                      Category
-                    </Label>
-                    <Select name="category" required>
-                      <SelectTrigger className="mt-1.5 border-input bg-background text-foreground">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent className="border-border bg-popover text-popover-foreground">
-                        <SelectItem value="Food">Food</SelectItem>
-                        <SelectItem value="Transport">Transport</SelectItem>
-                        <SelectItem value="Entertainment">Entertainment</SelectItem>
-                        <SelectItem value="Shopping">Shopping</SelectItem>
-                        <SelectItem value="Bills">Bills</SelectItem>
-                        <SelectItem value="Income">Income</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-input">
-                      Cancel
-                    </Button>
-                    <Button type="submit" className="bg-primary text-primary-foreground">
-                      Add Transaction
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle className="text-popover-foreground">Add Transaction</DialogTitle>
+                    <DialogDescription>Enter the details of your transaction</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleAddTransaction} className="space-y-4">
+                    <div>
+                      <Label htmlFor="type" className="text-popover-foreground">Type</Label>
+                      <Select name="type" defaultValue="expense" required>
+                        <SelectTrigger className="mt-1.5 border-input bg-background text-foreground">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent className="border-border bg-popover text-popover-foreground">
+                          <SelectItem value="expense">Expense</SelectItem>
+                          <SelectItem value="income">Income</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="name" className="text-popover-foreground">Transaction Name</Label>
+                      <Input id="name" name="name" placeholder="e.g., Grocery Store" required className="mt-1.5 border-input bg-background text-foreground" />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="amount" className="text-popover-foreground">Amount</Label>
+                      <Input id="amount" name="amount" type="number" step="0.01" min="0" placeholder="0.00" required className="mt-1.5 border-input bg-background text-foreground" />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="date" className="text-popover-foreground">Date</Label>
+                      <Input id="date" name="date" type="date" defaultValue={new Date().toISOString().split("T")[0]} max={new Date().toISOString().split("T")[0]} required className="mt-1.5 border-input bg-background text-foreground" />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="category" className="text-popover-foreground">Category</Label>
+                      <Select name="category" required>
+                        <SelectTrigger className="mt-1.5 border-input bg-background text-foreground">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent className="border-border bg-popover text-popover-foreground">
+                          <SelectItem value="Food">Food</SelectItem>
+                          <SelectItem value="Transport">Transport</SelectItem>
+                          <SelectItem value="Entertainment">Entertainment</SelectItem>
+                          <SelectItem value="Shopping">Shopping</SelectItem>
+                          <SelectItem value="Bills">Bills</SelectItem>
+                          <SelectItem value="Income">Income</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-input">
+                        Cancel
+                      </Button>
+                      <Button type="submit" className="bg-primary text-primary-foreground">
+                        Add Transaction
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+            </div>
           </div>
 
           {/* Metric Cards */}
@@ -395,11 +349,10 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-card-foreground">${totalIncome.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-primary">+0%</span> from last month
-                </p>
+                <p className="text-xs text-muted-foreground"><span className="text-primary">+0%</span> from last month</p>
               </CardContent>
             </Card>
+
             <Card className="border-border bg-card">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-card-foreground">Total Expenses</CardTitle>
@@ -407,11 +360,10 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-card-foreground">${totalExpenses.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-destructive">+0%</span> from last month
-                </p>
+                <p className="text-xs text-muted-foreground"><span className="text-destructive">+0%</span> from last month</p>
               </CardContent>
             </Card>
+
             <Card className="border-border bg-card">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-card-foreground">Balance</CardTitle>
@@ -422,6 +374,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground">Available to spend</p>
               </CardContent>
             </Card>
+
             <Card className="border-border bg-card">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-card-foreground">Savings Rate</CardTitle>
@@ -436,7 +389,8 @@ export default function DashboardPage() {
 
           {/* Charts Row */}
           <div className="mb-8 grid gap-6 lg:grid-cols-2">
-            {/* Income vs Expenses Chart */}
+
+            {/* Income vs Expenses */}
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-card-foreground">Income vs Expenses</CardTitle>
@@ -451,6 +405,7 @@ export default function DashboardPage() {
                     <span>${Math.round(maxIncome * 0.25)}</span>
                     <span>$0</span>
                   </div>
+
                   <div className="ml-12 flex h-64 items-end justify-around gap-2">
                     {monthlyData.map((data, i) => (
                       <div key={i} className="flex flex-1 flex-col items-center gap-2">
@@ -471,6 +426,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 </div>
+
                 <div className="mt-4 flex justify-center gap-4 text-xs">
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded bg-destructive" />
@@ -484,7 +440,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Spending by Category */}
+            {/* Category Breakdown */}
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-card-foreground">Spending by Category</CardTitle>
@@ -530,6 +486,7 @@ export default function DashboardPage() {
                     )}
                   </div>
                 </div>
+
                 <div className="mt-4 space-y-2">
                   {Object.entries(categorySpending)
                     .sort((a, b) => b[1] - a[1])
@@ -556,6 +513,7 @@ export default function DashboardPage() {
 
           {/* Bottom Row */}
           <div className="grid gap-6 lg:grid-cols-3">
+
             {/* Balance Trend */}
             <Card className="border-border bg-card lg:col-span-2">
               <CardHeader>
@@ -571,6 +529,7 @@ export default function DashboardPage() {
                     <span>${Math.round(maxBalance * 0.25)}</span>
                     <span>$0</span>
                   </div>
+
                   <div className="ml-12">
                     <svg className="h-48 w-full" viewBox="0 0 600 200">
                       <defs>
@@ -579,6 +538,7 @@ export default function DashboardPage() {
                           <stop offset="100%" stopColor="#4ade80" stopOpacity="0" />
                         </linearGradient>
                       </defs>
+
                       {balanceTrendData.length > 0 && (
                         <>
                           <path
@@ -593,6 +553,7 @@ export default function DashboardPage() {
                             stroke="#4ade80"
                             strokeWidth="2"
                           />
+
                           <path
                             d={
                               balanceTrendData
@@ -605,6 +566,7 @@ export default function DashboardPage() {
                             }
                             fill="url(#balanceGradient)"
                           />
+
                           {balanceTrendData.map((d, i) => {
                             const x = (i / (balanceTrendData.length - 1)) * 600
                             const y = 200 - (d.balance / maxBalance) * 180
@@ -614,6 +576,7 @@ export default function DashboardPage() {
                       )}
                     </svg>
                   </div>
+
                   <div className="ml-12 mt-2 flex justify-between text-xs text-muted-foreground">
                     {balanceTrendData.map((d) => (
                       <span key={d.month}>{d.month}</span>
@@ -640,12 +603,7 @@ export default function DashboardPage() {
                           {transaction.category}
                         </div>
                       </div>
-                      <div
-                        className={cn(
-                          "text-sm font-medium",
-                          transaction.amount > 0 ? "text-primary" : "text-foreground",
-                        )}
-                      >
+                      <div className={cn("text-sm font-medium", transaction.amount > 0 ? "text-primary" : "text-foreground")}>
                         {transaction.amount > 0 ? "+" : ""}${Math.abs(transaction.amount).toFixed(2)}
                       </div>
                     </div>
@@ -653,7 +611,9 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
+
           </div>
+
         </div>
       </main>
     </div>

@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Suraj/SpendSmart/SpendSmart/frontend/src/components/sidebar-provider.tsx"],"sourcesContent":["\"use client\"\n\nimport { createContext, useContext, useState, type ReactNode } from \"react\"\n\ninterface SidebarContextType {\n  isCollapsed: boolean\n  setIsCollapsed: (value: boolean) => void\n}\n\nconst SidebarContext = createContext<SidebarContextType | undefined>(undefined)\n\nexport function SidebarProvider({ children }: { children: ReactNode }) {\n  const [isCollapsed, setIsCollapsed] = useState(false)\n\n  return <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed }}>{children}</SidebarContext.Provider>\n}\n\nexport function useSidebar() {\n  const context = useContext(SidebarContext)\n  if (context === undefined) {\n    throw new Error(\"useSidebar must be used within a SidebarProvider\")\n  }\n  return context\n}\n"],"names":[],"mappings":";;;;;;;AAEA;;;AAFA;;AASA,MAAM,+BAAiB,IAAA,4LAAa,EAAiC;AAE9D,SAAS,gBAAgB,EAAE,QAAQ,EAA2B;;IACnE,MAAM,CAAC,aAAa,eAAe,GAAG,IAAA,uLAAQ,EAAC;IAE/C,qBAAO,2MAAC,eAAe,QAAQ;QAAC,OAAO;YAAE;YAAa;QAAe;kBAAI;;;;;;AAC3E;GAJgB;KAAA;AAMT,SAAS;;IACd,MAAM,UAAU,IAAA,yLAAU,EAAC;IAC3B,IAAI,YAAY,WAAW;QACzB,MAAM,IAAI,MAAM;IAClB;IACA,OAAO;AACT;IANgB","debugId":null}}]
-}

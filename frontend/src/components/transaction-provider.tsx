@@ -131,3 +131,37 @@ export function useTransactions() {
   }
   return context
 }
+
+// Normalizes a transaction before storage
+export function normalizeTransaction(input: {
+  name: string;
+  date: string;
+  category: string;
+  amount: number;
+}) {
+  return {
+    name: input.name,
+    date: input.date,
+    category: input.category,
+    amount: Number(input.amount), // ensure number
+  };
+}
+
+// Calculates totals used in Dashboard
+export function calculateTotals(transactions: {
+  amount: number;
+}[]) {
+  const totalIncome = transactions
+    .filter(t => t.amount > 0)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalExpenses = Math.abs(
+    transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0)
+  );
+
+  return {
+    totalIncome,
+    totalExpenses,
+    balance: totalIncome - totalExpenses,
+  };
+}

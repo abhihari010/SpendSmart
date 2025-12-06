@@ -265,4 +265,3 @@ export async function checkHealth(): Promise<{ ok: boolean }> {
     throw error
   }
 }
-
